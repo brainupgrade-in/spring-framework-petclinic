@@ -1,6 +1,14 @@
-FROM openjdk:17-jre
+FROM eclipse-temurin:17-jdk-jammy as base
+WORKDIR /app
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+RUN ./mvnw dependency:resolve
+COPY src ./src
 
-COPY target/*.war petclinic.war
+FROM base as build
+RUN ./mvnw package
 
-ENTRYPOINT ["java"]
-CMD ["-jar","petclinic.war"]
+FROM eclipse-temurin:17-jre-jammy as production
+EXPOSE 8080
+COPY --from=build /app/target/spring-petclinic-*.jar /spring-petclinic.jar
+CMD ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/spring-petclinic.jar"]
